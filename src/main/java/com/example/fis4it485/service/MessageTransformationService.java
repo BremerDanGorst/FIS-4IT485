@@ -1,32 +1,28 @@
 package com.example.fis4it485.service;
 
-import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.support.DefaultMessage;
+import com.example.fis4it485.model.EnvelopeWrapperResponse;
+import lombok.RequiredArgsConstructor;
+import org.apache.camel.ProducerTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.logging.Logger;
 
 @Service
-public class EnvelopeWrapperService extends RouteBuilder {
-    private static final Logger logger = Logger.getLogger(EnvelopeWrapperService.class.getName());
+@RequiredArgsConstructor
+public class MessageTransformationService {
+    private static final Logger logger = Logger.getLogger(MessageTransformationService.class.getName());
 
+    private final ProducerTemplate producerTemplate;
 
-    public String transformMessage(String input) {
-        logger.info("Transforming message: " + input);
-        return input.toUpperCase();
-    }
-
-    @Override
-    public void configure() throws Exception {
-        from("direct:start")
-                .process(exchange -> {
-                    var originalMessage = exchange.getIn();
-                    var envelopeMessage = new DefaultMessage(exchange.getContext());
-                    envelopeMessage.setBody(originalMessage.getBody());
-                    envelopeMessage.setHeader("MyHeader", "HeaderValue");
-                    // Add more headers or metadata as needed
-                    exchange.getIn().setBody(envelopeMessage);
-                })
-                .to("direct:end");
+    public EnvelopeWrapperResponse sendMessage(Map<String, Object> messageBody) {
+        logger.info("Provided input: " + messageBody);
+        try {
+            return producerTemplate.requestBody("direct:start", messageBody.getOrDefault("content",
+                    "Default text to show functionality"), EnvelopeWrapperResponse.class);
+        } catch (Exception e) {
+            logger.info("Further investigation required: \n" + e);
+            return EnvelopeWrapperResponse.builder().build();
+        }
     }
 }
